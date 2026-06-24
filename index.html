@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>School Quiz Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --bg:#f3f7ff; --card:#ffffff; --ink:#172033; --muted:#6b7280;
+      --primary:#4f46e5; --primary2:#06b6d4; --success:#16a34a; --warning:#f59e0b;
+      --danger:#ef4444; --soft:#eef2ff; --line:#dbe3f0; --gold:#ffd54a;
+      --silver:#d8dde6; --bronze:#d7944d; --dark:#0f172a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,#dbeafe 0,transparent 32%),radial-gradient(circle at top right,#cffafe 0,transparent 30%),var(--bg);color:var(--ink)}
+    button,input,select,textarea{font-family:inherit}
+    .app{max-width:1240px;margin:0 auto;padding:22px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--primary),var(--primary2));display:grid;place-items:center;color:white;font-size:29px;box-shadow:0 12px 25px rgba(79,70,229,.23)}
+    h1,h2,h3,p{margin-top:0}.brand h1{margin:0;font-size:26px;line-height:1.1}.brand p{margin:4px 0 0;color:var(--muted);font-size:14px}
+    .status-pill{background:white;border:1px solid var(--line);border-radius:999px;padding:9px 13px;color:var(--muted);font-size:14px;box-shadow:0 8px 20px rgba(20,30,60,.06);white-space:nowrap}
+    .banner{display:none;margin:0 0 16px;padding:12px 14px;border-radius:17px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;line-height:1.4;font-size:14px}
+    .banner.show{display:block}.layout{display:grid;grid-template-columns:330px 1fr;gap:18px}
+    .card{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 16px 35px rgba(15,23,42,.08)}
+    .hint{color:var(--muted);font-size:14px;line-height:1.45;margin:0 0 14px}
+    label{display:block;font-size:13px;color:#374151;margin:12px 0 6px;font-weight:bold}
+    input,select{width:100%;padding:12px 13px;border-radius:14px;border:1px solid #cbd5e1;background:#f8fafc;font-size:15px;outline:none}
+    input:focus,select:focus{border-color:var(--primary);background:white;box-shadow:0 0 0 4px rgba(79,70,229,.10)}
+    .btn,.btn2,.btn-danger,.btn-dark{border:none;border-radius:15px;padding:12px 14px;font-size:15px;font-weight:bold;cursor:pointer}
+    .btn{width:100%;background:linear-gradient(135deg,var(--primary),var(--primary2));color:white;margin-top:14px;box-shadow:0 12px 25px rgba(79,70,229,.22)}
+    .btn2{background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe}.btn-dark{background:#111827;color:white}.btn-danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+    .mini-note{display:flex;align-items:flex-start;gap:8px;background:#ecfeff;border:1px solid #a5f3fc;color:#155e75;border-radius:15px;padding:10px;margin-top:13px;font-size:13px;line-height:1.35}
+    .grade-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:12px 0}.grade-btn{border:1px solid var(--line);background:#fff;border-radius:15px;padding:12px;font-weight:bold;cursor:pointer;transition:.15s;color:#111827}
+    .grade-btn.active,.grade-btn:hover{background:#111827;color:white;border-color:#111827;transform:translateY(-1px)}
+    .profile-box{display:none;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:18px;background:#fff;margin-bottom:14px}.profile-box.show{display:flex}
+    .avatar{width:58px;height:58px;border-radius:18px;object-fit:cover;background:#eef2ff;display:grid;place-items:center;font-size:28px;overflow:hidden;border:2px solid #e0e7ff}.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+    .profile-name{font-weight:bold}.profile-meta{font-size:12px;color:var(--muted);margin-top:3px}
+    .subject-grid{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:12px;margin-top:14px}
+    .subject{border:1px solid var(--line);background:#fff;border-radius:20px;padding:14px 12px;min-height:122px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:.15s}
+    .subject:hover{transform:translateY(-3px);box-shadow:0 14px 25px rgba(15,23,42,.10);border-color:#a5b4fc}.icon{font-size:30px;margin-bottom:8px}.subject-title{font-weight:bold;font-size:15px;margin-bottom:5px}.subject-meta{color:var(--muted);font-size:12px;line-height:1.3}
+    .two-col{display:grid;grid-template-columns:1fr 370px;gap:18px;margin-top:18px}.two-col.leader-only{grid-template-columns:1fr}.two-col.leader-only #workArea{display:none}.subject-back-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;flex-wrap:wrap}.subject-back-row .btn2{white-space:nowrap}.quiz-list{display:grid;gap:12px;margin-top:12px}.quiz-item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:13px;border-radius:18px;border:1px solid var(--line);background:#fff}
+    .quiz-title{font-weight:bold;margin-bottom:4px}.sub{color:var(--muted);font-size:12px;margin-top:2px}.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.badge{font-size:12px;padding:5px 8px;border-radius:999px;background:var(--soft);color:#3730a3;font-weight:bold}.badge.green{background:#dcfce7;color:#166534}.badge.orange{background:#ffedd5;color:#9a3412}.badge.blue{background:#dbeafe;color:#1d4ed8}
+    .hidden{display:none!important}.loader{padding:18px;color:var(--muted);text-align:center;border:1px dashed var(--line);border-radius:18px;background:#fff}.tabs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:#f8fafc;padding:8px 10px;border-radius:999px;font-size:13px;font-weight:bold;cursor:pointer}.tab.active{background:#111827;color:white;border-color:#111827}
+    .leader-list{display:grid;gap:9px;margin-top:12px}.leader{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:16px;background:#fff}.rank{width:38px;height:38px;display:grid;place-items:center;border-radius:13px;font-size:20px;background:#f1f5f9;overflow:hidden}.rank.gold{background:linear-gradient(135deg,#fff8c4,var(--gold))}.rank.silver{background:linear-gradient(135deg,#ffffff,var(--silver))}.rank.bronze{background:linear-gradient(135deg,#fff2df,var(--bronze))}
+    .mini-avatar{width:38px;height:38px;border-radius:13px;object-fit:cover;border:2px solid #e5e7eb}.name{font-weight:bold;font-size:14px}.score{font-weight:bold;font-size:18px}
+    .quiz-screen{background:#0f172a;color:white;border-radius:24px;padding:20px;box-shadow:0 16px 35px rgba(15,23,42,.22);position:relative;overflow:hidden}.quiz-screen:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06);right:-55px;top:-55px}.quiz-screen-inner{position:relative;z-index:1}
+    .progress-wrap{background:rgba(255,255,255,.12);height:12px;border-radius:999px;overflow:hidden;margin:12px 0 18px}.progress-bar{height:100%;background:linear-gradient(135deg,#22c55e,#06b6d4);width:0%}.question-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:16px}.question-image{max-width:100%;border-radius:16px;margin:10px 0;border:1px solid rgba(255,255,255,.18)}
+    .answers{display:grid;gap:9px;margin-top:12px}.answer-btn,.match-row select,.text-answer{width:100%;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:12px;background:white;color:#111827;font-weight:bold;cursor:pointer;text-align:left}.answer-btn.selected{outline:4px solid rgba(34,197,94,.35);background:#dcfce7;border-color:#86efac}.check-answer{display:flex;align-items:center;gap:8px;background:white;color:#111827;border-radius:14px;padding:12px;font-weight:bold}.check-answer input{width:auto}.match-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;background:rgba(255,255,255,.08);border-radius:14px;padding:10px}.match-term{font-weight:bold}.quiz-nav{display:flex;gap:10px;justify-content:space-between;margin-top:14px;flex-wrap:wrap}
+    .result-card{background:#fff;border:1px solid var(--line);border-radius:24px;padding:20px;text-align:center}.big-score{font-size:48px;font-weight:900;margin:8px 0;color:#111827}.footer-note{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+    @media(max-width:1040px){.layout,.two-col{grid-template-columns:1fr}.subject-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}.topbar{align-items:flex-start;flex-direction:column}}@media(max-width:560px){.app{padding:14px}.subject-grid,.grade-grid{grid-template-columns:1fr}.quiz-item{grid-template-columns:1fr}.btn-dark{width:100%}.match-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="topbar">
+      <div class="brand"><div class="logo">🎓</div><div><h1>School Quiz Hub</h1><p>Grades 4–11 • Approved learners only • Live leaderboards</p></div></div>
+      <div class="status-pill" id="connectionStatus">Preview mode</div>
+    </section>
+    <div class="banner" id="configBanner"><strong>Setup needed:</strong> replace <code>PASTE_SUPABASE_URL_HERE</code> and <code>PASTE_SUPABASE_PUBLISHABLE_KEY_HERE</code> inside <code>index.html</code>. Until then, this page runs in demo mode.</div>
+
+    <section class="layout">
+      <aside class="card">
+        <div class="profile-box" id="profileBox"><div class="avatar" id="avatarBox">👤</div><div><div class="profile-name" id="profileName">Learner</div><div class="profile-meta" id="profileMeta">Grade</div></div></div>
+        <h2>Student access</h2><p class="hint">Choose a grade, then login with a learner that you already approved in Supabase.</p>
+        <label>Choose grade</label><div class="grade-grid" id="gradeGrid"></div>
+        <label>Approved student name</label><select id="studentSelect"><option value="">Choose grade first</option></select>
+        <label>Password / learner code</label><input id="learnerCode" type="password" placeholder="Enter learner code" />
+        <button class="btn" id="loginBtn">Unlock quizzes 🚀</button>
+        <div id="avatarUploadBox" class="mini-note hidden"><span>🖼️</span><span><strong>Avatar:</strong> upload a small image for the leaderboard.<input id="avatarInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style="margin-top:8px;background:white"/></span></div>
+        <button class="btn-danger hidden" id="logoutBtn" style="width:100%;margin-top:12px">Logout</button>
+        <div class="mini-note"><span>🔐</span><span><strong>Rule:</strong> learners can only enter the grade you gave them access to in Supabase.</span></div>
+      </aside>
+      <section class="card"><h2 id="mainTitle">Choose your grade</h2><p class="hint" id="mainHint">After login, subjects and quizzes will load from Supabase.</p><div id="subjectArea"><div class="loader">Login first to see subjects.</div></div></section>
+    </section>
+
+    <section class="two-col leader-only" id="lowerArea">
+      <section class="card" id="workArea"><h2>Quizzes</h2><p class="hint">Choose a subject first. Quizzes under that subject will appear here.</p><div class="loader">No quiz selected yet.</div></section>
+      <aside class="card"><h2>Live leaderboard</h2><p class="hint">Overall grade results appear here. After choosing a subject or quiz, this can filter too.</p><div class="tabs"><button class="tab active" id="tabGrade">Grade</button><button class="tab" id="tabSubject">Subject</button><button class="tab" id="tabQuiz">Quiz</button></div><div class="leader-list" id="leaderboard"><div class="loader">Login to view leaderboard.</div></div></aside>
+    </section>
+    <p class="footer-note">Upload students, subjects, quizzes, questions, images and results through Supabase. GitHub hosts only this quiz engine.</p>
+  </main>
+
+<script>
+const SUPABASE_URL = "https://gbezoogwevzctjxemuif.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XVPEm3NnzSKOxn0OM3Iv5w_iNc0_Ihu";
+const CONFIG_NEEDED = SUPABASE_URL.includes("PASTE_") || SUPABASE_PUBLISHABLE_KEY.includes("PASTE_");
+const sb = CONFIG_NEEDED ? null : supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const state = { grade:null, student:null, subjects:[], selectedSubject:null, quizzes:[], selectedQuiz:null, questions:[], answers:{}, qIndex:0, leaderboardScope:"grade" };
+const $ = (id) => document.getElementById(id);
+
+const demo = {
+  students:{4:["Demo Grade 4 Learner"],5:["Demo Grade 5 Learner"],6:["Demo Grade 6 Learner","Demo Multi Grade Learner"],7:["Demo Grade 7 Learner"],8:["Demo Grade 8 Learner"],9:["Demo Grade 9 Learner"],10:["Demo Grade 10 Learner"],11:["Demo Grade 11 Learner"]},
+  subjects:[{id:"eng",name:"English",icon:"📘"},{id:"math",name:"Math",icon:"➗"},{id:"afr",name:"Afrikaans",icon:"📗"},{id:"ns",name:"Natural Science",icon:"🔬"},{id:"geo",name:"Geography",icon:"🌍"},{id:"his",name:"History",icon:"🏺"},{id:"lo",name:"Life Orientation",icon:"💚"}],
+  quizzes:[{id:"fractions",title:"Fractions Quick Challenge",description:"MCQ and missing word practice",time_limit_minutes:15,question_total:4},{id:"matchterms",title:"Math Match the Term",description:"Match terms to meanings",time_limit_minutes:10,question_total:2}],
+  questions:[{question_id:"q1",question_no:1,question_type:"mcq",question:"What is ½ of 24?",image_url:"",options:[{value:"A",label:"10"},{value:"B",label:"12"},{value:"C",label:"14"},{value:"D",label:"18"}],marks:1},{question_id:"q2",question_no:2,question_type:"true_false",question:"True or False: 9 × 6 = 54",image_url:"",options:null,marks:1},{question_id:"q3",question_no:3,question_type:"missing_word",question:"Complete: The top number in a fraction is called the _______.",image_url:"",options:null,marks:1},{question_id:"q4",question_no:4,question_type:"match",question:"Match each fraction word to its meaning.",image_url:"",options:{left:["Numerator","Denominator"],right:["Bottom number","Top number"]},marks:2}],
+  leaderboard:[{rank_no:1,full_name:"Ayesha Khan",avatar_url:"",average_percentage:91,quizzes_completed:8},{rank_no:2,full_name:"Yusuf Adams",avatar_url:"",average_percentage:86,quizzes_completed:7},{rank_no:3,full_name:"Zainab Jacobs",avatar_url:"",average_percentage:82,quizzes_completed:9},{rank_no:4,full_name:"Imraan Daniels",avatar_url:"",average_percentage:78,quizzes_completed:5}]
+};
+
+function setStatus(msg){$("connectionStatus").textContent=msg}
+function escapeHtml(str){return String(str??"").replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[s]))}
+function escapeJs(str){return String(str??"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}
+function gradeLabel(){return state.grade?`Grade ${state.grade}`:"No grade"}
+
+function init(){
+  if(CONFIG_NEEDED){$("configBanner").classList.add("show");setStatus("Demo mode — Supabase config needed")}else{setStatus("Connected to Supabase")}
+  renderGradeButtons(); bindEvents();
+}
+function bindEvents(){
+  $("loginBtn").addEventListener("click",login); $("logoutBtn").addEventListener("click",logout); $("avatarInput").addEventListener("change",uploadAvatar);
+  $("tabGrade").addEventListener("click",()=>setLeaderboardScope("grade")); $("tabSubject").addEventListener("click",()=>setLeaderboardScope("subject")); $("tabQuiz").addEventListener("click",()=>setLeaderboardScope("quiz"));
+}
+function renderGradeButtons(){const box=$("gradeGrid");box.innerHTML="";for(let g=4;g<=11;g++){const btn=document.createElement("button");btn.className="grade-btn";btn.textContent=`Grade ${g}`;btn.onclick=()=>chooseGrade(g);box.appendChild(btn)}}
+async function chooseGrade(grade){
+  state.grade=grade; document.querySelectorAll(".grade-btn").forEach(btn=>btn.classList.toggle("active",btn.textContent===`Grade ${grade}`));
+  $("mainTitle").textContent=`Grade ${grade}`; $("mainHint").textContent="Login to see subjects and quizzes for this grade."; await loadStudentsForGrade();
+}
+async function loadStudentsForGrade(){
+  const select=$("studentSelect"); select.innerHTML=`<option value="">Loading approved learners...</option>`;
+  if(CONFIG_NEEDED){const names=demo.students[state.grade]||[`Demo Grade ${state.grade} Learner`];select.innerHTML=`<option value="">Select approved learner</option>`+names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");return}
+  const {data,error}=await sb.rpc("list_grade_students",{p_grade:state.grade});
+  if(error){select.innerHTML=`<option value="">Could not load learners</option>`;alert(error.message);return}
+  if(!data||data.length===0){select.innerHTML=`<option value="">No approved learners for Grade ${state.grade}</option>`;return}
+  select.innerHTML=`<option value="">Select approved learner</option>`+data.map(row=>`<option value="${escapeHtml(row.full_name)}">${escapeHtml(row.full_name)}</option>`).join("");
+}
+async function login(){
+  if(!state.grade){alert("Please choose a grade first.");return}
+  const fullName=$("studentSelect").value; const code=$("learnerCode").value.trim(); if(!fullName||!code){alert("Please choose your name and enter your code.");return}
+  if(CONFIG_NEEDED){state.student={student_id:"demo-student",full_name:fullName,grade_level:state.grade,avatar_url:""};showLoggedIn();await loadSubjects();await loadLeaderboard();return}
+  const {data,error}=await sb.rpc("login_student",{p_grade:state.grade,p_full_name:fullName,p_learner_code:code});
+  if(error){alert("Login failed: "+error.message);return} if(!data||data.length===0){alert("Access denied. Check name, grade and learner code.");return}
+  state.student=data[0];showLoggedIn();await loadSubjects();await loadLeaderboard();
+}
+function showLoggedIn(){
+  $("profileBox").classList.add("show");$("avatarUploadBox").classList.remove("hidden");$("logoutBtn").classList.remove("hidden");$("profileName").textContent=state.student.full_name;$("profileMeta").textContent=gradeLabel();renderAvatar(state.student.avatar_url);$("mainTitle").textContent=`${gradeLabel()} subjects`;$("mainHint").textContent="Choose a subject to view available quizzes.";resetWorkArea();
+}
+function renderAvatar(url){$("avatarBox").innerHTML=url?`<img src="${escapeHtml(url)}" alt="Avatar">`:"👤"}
+function showQuizArea(show){
+  const lower=$("lowerArea");
+  if(!lower)return;
+  lower.classList.toggle("leader-only", !show);
+}
+function resetWorkArea(){
+  showQuizArea(false);
+  $("workArea").innerHTML=`<h2>Quizzes</h2><p class="hint">Choose a subject first. Quizzes under that subject will appear here.</p><div class="loader">No quiz selected yet.</div>`;
+}
+async function backToSubjects(){
+  state.selectedSubject=null;state.selectedQuiz=null;state.quizzes=[];state.questions=[];state.answers={};state.qIndex=0;
+  resetWorkArea();
+  await loadSubjects();
+  setLeaderboardScope("grade");
+}
+function logout(){
+  state.student=null;state.subjects=[];state.selectedSubject=null;state.quizzes=[];state.selectedQuiz=null;state.questions=[];state.answers={};
+  $("profileBox").classList.remove("show");$("avatarUploadBox").classList.add("hidden");$("logoutBtn").classList.add("hidden");$("learnerCode").value="";
+  $("mainTitle").textContent="Choose your grade";$("mainHint").textContent="After login, subjects and quizzes will load from Supabase.";$("subjectArea").innerHTML=`<div class="loader">Login first to see subjects.</div>`;resetWorkArea();$("leaderboard").innerHTML=`<div class="loader">Login to view leaderboard.</div>`;
+}
+async function uploadAvatar(event){
+  const file=event.target.files[0]; if(!file||!state.student)return;
+  if(file.size>700*1024){alert("Please upload a smaller image. Recommended: under 700 KB.");event.target.value="";return}
+  if(!file.type.startsWith("image/")){alert("Please choose an image file.");event.target.value="";return}
+  if(CONFIG_NEEDED){const localUrl=URL.createObjectURL(file);state.student.avatar_url=localUrl;renderAvatar(localUrl);alert("Demo avatar updated. Real upload works after Supabase is connected.");return}
+  const ext=(file.name.split(".").pop()||"jpg").toLowerCase(); const path=`${state.grade}/${state.student.student_id}-${Date.now()}.${ext}`;
+  const {error:uploadError}=await sb.storage.from("avatars").upload(path,file,{cacheControl:"3600",upsert:true}); if(uploadError){alert("Avatar upload failed: "+uploadError.message);return}
+  const {data:pub}=sb.storage.from("avatars").getPublicUrl(path); const publicUrl=pub.publicUrl;
+  const {error:updateError}=await sb.rpc("update_student_avatar",{p_student_id:state.student.student_id,p_avatar_url:publicUrl}); if(updateError){alert("Avatar saved in storage but profile update failed: "+updateError.message);return}
+  state.student.avatar_url=publicUrl;renderAvatar(publicUrl);await loadLeaderboard();
+}
+async function loadSubjects(){
+  $("subjectArea").innerHTML=`<div class="loader">Loading subjects...</div>`;
+  if(CONFIG_NEEDED){state.subjects=demo.subjects.map(s=>({...s,grade_level:state.grade}));renderSubjects();return}
+  const {data,error}=await sb.rpc("get_subjects",{p_student_id:state.student.student_id,p_grade:state.grade});
+  if(error){$("subjectArea").innerHTML=`<div class="loader">Could not load subjects: ${escapeHtml(error.message)}</div>`;return}
+  state.subjects=data||[];renderSubjects();
+}
+function renderSubjects(){
+  state.selectedSubject=null;state.selectedQuiz=null;state.quizzes=[];state.questions=[];state.answers={};state.qIndex=0;
+  $("mainTitle").textContent=`${gradeLabel()} subjects`;
+  $("mainHint").textContent="Choose a subject to view all quizzes under that subject.";
+  resetWorkArea();
+  if(state.subjects.length===0){$("subjectArea").innerHTML=`<div class="loader">No subjects active for ${gradeLabel()} yet. Add them in Supabase.</div>`;return}
+  $("subjectArea").innerHTML=`<div class="subject-grid">${state.subjects.map(s=>`<div class="subject" onclick="selectSubject('${s.id}')"><div><div class="icon">${escapeHtml(s.icon||"📘")}</div><div class="subject-title">${escapeHtml(s.name)}</div><div class="subject-meta">${gradeLabel()} • view quizzes</div></div></div>`).join("")}</div>`;
+}
+async function selectSubject(subjectId){
+  state.selectedSubject=state.subjects.find(s=>String(s.id)===String(subjectId));state.selectedQuiz=null;state.questions=[];state.answers={};state.qIndex=0;
+  resetWorkArea();
+  $("mainTitle").textContent=`${escapeHtml(state.selectedSubject.name)} quizzes`;
+  $("mainHint").textContent=`${gradeLabel()} • choose a quiz to start.`;
+  $("subjectArea").innerHTML=`<div class="subject-back-row"><button class="btn2" onclick="backToSubjects()">← Back to subjects</button><span class="badge blue">${escapeHtml(gradeLabel())}</span></div><div class="loader">Loading quizzes...</div>`;
+  await loadQuizzes();
+  setLeaderboardScope("subject");
+}
+async function loadQuizzes(){
+  if(CONFIG_NEEDED){state.quizzes=demo.quizzes;renderQuizzes();await loadLeaderboard();return}
+  const {data,error}=await sb.rpc("get_quizzes",{p_student_id:state.student.student_id,p_grade:state.grade,p_subject_id:state.selectedSubject.id});
+  if(error){$("subjectArea").innerHTML=`<div class="subject-back-row"><button class="btn2" onclick="backToSubjects()">← Back to subjects</button></div><div class="loader">Could not load quizzes: ${escapeHtml(error.message)}</div>`;return}
+  state.quizzes=data||[];renderQuizzes();await loadLeaderboard();
+}
+function renderQuizzes(){
+  const backRow=`<div class="subject-back-row"><button class="btn2" onclick="backToSubjects()">← Back to subjects</button><span class="badge blue">${escapeHtml(gradeLabel())}</span></div>`;
+  if(state.quizzes.length===0){$("subjectArea").innerHTML=`${backRow}<p class="hint">No active quizzes yet. Upload quizzes/questions in Supabase.</p><div class="loader">No quizzes found for ${escapeHtml(state.selectedSubject.name)}.</div>`;return}
+  $("subjectArea").innerHTML=`${backRow}<div class="quiz-list">${state.quizzes.map(q=>`<div class="quiz-item"><div><div class="quiz-title">${escapeHtml(q.title)}</div><div class="sub">${escapeHtml(q.description||"Quiz practice")} • ${q.question_total||0} questions • ${q.time_limit_minutes||"No"} min</div><div class="badges"><span class="badge green">Self marking</span><span class="badge blue">Live results</span><span class="badge orange">Images allowed</span></div></div><button class="btn-dark" onclick="startQuiz('${q.id}')">Start ▶</button></div>`).join("")}</div>`;
+}
+async function startQuiz(quizId){
+  state.selectedQuiz=state.quizzes.find(q=>String(q.id)===String(quizId));state.answers={};state.qIndex=0;showQuizArea(true);$("workArea").innerHTML=`<h2>${escapeHtml(state.selectedQuiz.title)}</h2><div class="loader">Loading questions...</div>`;
+  if(CONFIG_NEEDED){state.questions=demo.questions;renderQuestion();$("workArea").scrollIntoView({behavior:"smooth",block:"start"});setLeaderboardScope("quiz");return}
+  const {data,error}=await sb.rpc("get_questions",{p_student_id:state.student.student_id,p_quiz_id:state.selectedQuiz.id});
+  if(error){$("workArea").innerHTML=`<div class="loader">Could not load questions: ${escapeHtml(error.message)}</div>`;return}
+  state.questions=data||[]; if(state.questions.length===0){$("workArea").innerHTML=`<div class="loader">No questions found for this quiz.</div>`;return}
+  renderQuestion();$("workArea").scrollIntoView({behavior:"smooth",block:"start"});setLeaderboardScope("quiz");
+}
+function renderQuestion(){
+  const q=state.questions[state.qIndex];const total=state.questions.length;const progress=Math.round(((state.qIndex+1)/total)*100);
+  $("workArea").innerHTML=`<div class="quiz-screen"><div class="quiz-screen-inner"><h2>${escapeHtml(state.selectedQuiz.title)}</h2><div class="sub" style="color:#cbd5e1">Question ${state.qIndex+1} of ${total} • ${escapeHtml(q.question_type)}</div><div class="progress-wrap"><div class="progress-bar" style="width:${progress}%"></div></div><div class="question-card"><h3>${escapeHtml(q.question)}</h3>${q.image_url?`<img class="question-image" src="${escapeHtml(q.image_url)}" alt="Question image">`:""}${renderAnswerInput(q)}</div><div class="quiz-nav"><button class="btn2" onclick="prevQuestion()" ${state.qIndex===0?"disabled":""}>← Back</button>${state.qIndex<total-1?`<button class="btn2" onclick="nextQuestion()">Next →</button>`:`<button class="btn" style="width:auto;margin-top:0" onclick="submitQuiz()">Submit quiz ✅</button>`}</div></div></div>`;
+}
+function renderAnswerInput(q){
+  const current=state.answers[q.question_id];
+  if(q.question_type==="mcq"||q.question_type==="mcq_image"){const options=Array.isArray(q.options)?q.options:[];return `<div class="answers">${options.map(opt=>`<button class="answer-btn ${current===opt.value?"selected":""}" onclick="saveAnswer('${q.question_id}', '${escapeJs(opt.value)}')">${escapeHtml(opt.value)}. ${escapeHtml(opt.label)}</button>`).join("")}</div>`}
+  if(q.question_type==="true_false"){return `<div class="answers"><button class="answer-btn ${current==="true"?"selected":""}" onclick="saveAnswer('${q.question_id}', 'true')">True</button><button class="answer-btn ${current==="false"?"selected":""}" onclick="saveAnswer('${q.question_id}', 'false')">False</button></div>`}
+  if(q.question_type==="missing_word"||q.question_type==="short_exact"){return `<div class="answers"><input class="text-answer" value="${escapeHtml(current||"")}" placeholder="Type your answer..." oninput="saveAnswerNoRender('${q.question_id}', this.value)"></div>`}
+  if(q.question_type==="multi_select"){const selected=Array.isArray(current)?current:[];const options=Array.isArray(q.options)?q.options:[];return `<div class="answers">${options.map(opt=>`<label class="check-answer"><input type="checkbox" ${selected.includes(opt.value)?"checked":""} onchange="toggleMulti('${q.question_id}', '${escapeJs(opt.value)}', this.checked)"> ${escapeHtml(opt.label)}</label>`).join("")}</div>`}
+  if(q.question_type==="match"){const left=q.options?.left||[];const right=q.options?.right||[];const answerObj=current||{};return `<div class="answers">${left.map(term=>`<div class="match-row"><div class="match-term">${escapeHtml(term)}</div><select onchange="saveMatch('${q.question_id}', '${escapeJs(term)}', this.value)"><option value="">Choose match</option>${right.map(choice=>`<option value="${escapeHtml(choice)}" ${answerObj[term]===choice?"selected":""}>${escapeHtml(choice)}</option>`).join("")}</select></div>`).join("")}</div>`}
+  return `<div class="loader">Unsupported question type: ${escapeHtml(q.question_type)}</div>`;
+}
+function saveAnswer(questionId,answer){state.answers[questionId]=answer;renderQuestion()}
+function saveAnswerNoRender(questionId,answer){state.answers[questionId]=answer}
+function toggleMulti(questionId,value,checked){const arr=Array.isArray(state.answers[questionId])?[...state.answers[questionId]]:[];if(checked&&!arr.includes(value))arr.push(value);if(!checked){const idx=arr.indexOf(value);if(idx>=0)arr.splice(idx,1)}state.answers[questionId]=arr}
+function saveMatch(questionId,term,value){const obj=state.answers[questionId]||{};obj[term]=value;state.answers[questionId]=obj}
+function nextQuestion(){if(state.qIndex<state.questions.length-1){state.qIndex++;renderQuestion()}}
+function prevQuestion(){if(state.qIndex>0){state.qIndex--;renderQuestion()}}
+async function submitQuiz(){
+  const unanswered=state.questions.filter(q=>state.answers[q.question_id]===undefined||state.answers[q.question_id]==="");if(unanswered.length>0){const ok=confirm(`You have ${unanswered.length} unanswered question(s). Submit anyway?`);if(!ok)return}
+  const answerArray=state.questions.map(q=>({question_id:q.question_id,answer:state.answers[q.question_id]??null}));
+  if(CONFIG_NEEDED){const percent=Math.floor(70+Math.random()*25);renderResult({score:percent,total:100,percentage:percent});return}
+  const {data,error}=await sb.rpc("submit_attempt",{p_student_id:state.student.student_id,p_quiz_id:state.selectedQuiz.id,p_answers:answerArray});if(error){alert("Submit failed: "+error.message);return}
+  renderResult(data[0]);await loadLeaderboard();
+}
+function renderResult(result){
+  $("workArea").innerHTML=`<div class="result-card"><div style="font-size:52px">${result.percentage>=80?"🏆":result.percentage>=50?"⭐":"📚"}</div><h2>Quiz submitted!</h2><p class="hint">${escapeHtml(state.selectedQuiz.title)} • ${escapeHtml(state.selectedSubject.name)}</p><div class="big-score">${Number(result.percentage).toFixed(0)}%</div><p><strong>Score:</strong> ${Number(result.score).toFixed(1)} / ${Number(result.total).toFixed(1)}</p><button class="btn2" onclick="selectSubject('${state.selectedSubject.id}')">Back to ${escapeHtml(state.selectedSubject.name)} quizzes</button></div>`;
+}
+function setLeaderboardScope(scope){
+  state.leaderboardScope=scope;["tabGrade","tabSubject","tabQuiz"].forEach(id=>$(id).classList.remove("active"));if(scope==="grade")$("tabGrade").classList.add("active");if(scope==="subject")$("tabSubject").classList.add("active");if(scope==="quiz")$("tabQuiz").classList.add("active");loadLeaderboard();
+}
+async function loadLeaderboard(){
+  if(!state.student){$("leaderboard").innerHTML=`<div class="loader">Login to view leaderboard.</div>`;return}
+  if(CONFIG_NEEDED){renderLeaderboard(demo.leaderboard);return}
+  const {data,error}=await sb.rpc("get_leaderboard",{p_grade:state.grade,p_scope:state.leaderboardScope,p_subject_id:state.leaderboardScope==="subject"&&state.selectedSubject?state.selectedSubject.id:null,p_quiz_id:state.leaderboardScope==="quiz"&&state.selectedQuiz?state.selectedQuiz.id:null,p_limit:10});
+  if(error){$("leaderboard").innerHTML=`<div class="loader">Could not load leaderboard: ${escapeHtml(error.message)}</div>`;return}
+  renderLeaderboard(data||[]);
+}
+function renderLeaderboard(rows){
+  if(!rows.length){$("leaderboard").innerHTML=`<div class="loader">No results yet. Be the first to submit a quiz!</div>`;return}
+  $("leaderboard").innerHTML=rows.map(row=>{const rankClass=row.rank_no===1?"gold":row.rank_no===2?"silver":row.rank_no===3?"bronze":"";const rankIcon=row.rank_no===1?"🏆":row.rank_no===2?"🥈":row.rank_no===3?"🥉":row.rank_no;const avatarHtml=row.avatar_url?`<img class="mini-avatar" src="${escapeHtml(row.avatar_url)}" alt="">`:`<div class="rank ${rankClass}">${rankIcon}</div>`;return `<div class="leader">${avatarHtml}<div><div class="name">${escapeHtml(row.full_name)}</div><div class="sub">${row.quizzes_completed||0} quiz result(s)</div></div><div class="score">${Number(row.average_percentage||0).toFixed(0)}%</div></div>`}).join("");
+}
+init();
+</script>
+</body>
+</html>
